@@ -1,0 +1,38 @@
+#cloud-config
+hostname: range42-mcs
+manage_etc_hosts: true
+
+users:
+  - name: range42-operator
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    shell: /bin/bash
+    ssh_authorized_keys:
+      - ssh-rsa AAAAB3NzaC... your-key-here
+    lock_passwd: false
+
+chpasswd:
+  list: |
+    range42-operator:RangersChangePasswords2!
+  expire: false
+
+packages:
+  - etckeeper
+  - qemu-guest-agent
+  - spice-vdagent
+
+package_update: true
+package_upgrade: true
+
+runcmd:
+  - systemctl enable qemu-guest-agent
+  - systemctl start qemu-guest-agent
+  - systemctl enable spice-vdagent
+  - systemctl start spice-vdagent
+  - etckeeper init
+  - etckeeper commit "Initial commit after cloud-init setup"
+  - echo "Setup complete" > /root/cloud-init-done.txt
+
+power_state:
+  mode: reboot
+  timeout: 300
+  condition: true
