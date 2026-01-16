@@ -19,6 +19,7 @@ packages:
   - etckeeper
   - qemu-guest-agent
   - spice-vdagent
+  - git
 
 package_update: true
 package_upgrade: true
@@ -30,6 +31,9 @@ runcmd:
   - systemctl start spice-vdagent
   - etckeeper init
   - etckeeper commit "Initial commit after cloud-init setup"
+  # Clone Range42 repository
+  - sudo -u range42-operator git clone https://github.com/range42/range42.git /home/range42-operator/range42
+  - chown -R range42-operator:range42-operator /home/range42-operator/range42
   - echo "Setup complete" > /root/cloud-init-done.txt
 
 power_state:
