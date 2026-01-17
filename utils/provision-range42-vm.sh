@@ -7,10 +7,12 @@ IMAGE="/var/lib/vz/template/iso/ubuntu-24.04-server-cloudimg-amd64.img"
 
 # TODO: Think how to get cloud init to that location.
 # TODO: Adapt script to consider the variable.
-CLINIT="/var/lib/vz/snippets/custom-cloud-init.yml"
+CLINIT="snippets/range42-mcs.cloud-init.yml"
 
-# Fetch the cloud-init image 
-wget https://cloud-images.ubuntu.com/releases/24.04/release/ubuntu-24.04-server-cloudimg-amd64.img -O ${IMAGE}
+# Fetch the cloud-init image if missing
+if [ ! -f "${IMAGE}" ]; then
+  wget https://cloud-images.ubuntu.com/releases/24.04/release/ubuntu-24.04-server-cloudimg-amd64.img -O "${IMAGE}"
+fi
 
 
 # Create VM
@@ -32,16 +34,14 @@ qm resize $VMID scsi0 32G
 # Add cloud-init
 qm set $VMID --ide2 $STORAGE:cloudinit
 qm set $VMID --boot order=scsi0
-qm set $VMID --ciuser ubuntu
-qm set $VMID --cipassword 'YourPassword'
 qm set $VMID --sshkeys /root/.ssh/authorized_keys
 qm set $VMID --ipconfig0 ip=dhcp
 qm set $VMID --nameserver 8.8.8.8
 
 # Add custom cloud-init with packages
-qm set $VMID --cicustom "user=local:snippets/custom-cloud-init.yml"
+qm set $VMID --cicustom "user=local:${CLINIT}"
 
 # Start VM
 qm start $VMID
 
-echo "VM $VMID created and started. Packages (etckeeper, qemu-guest-agent, spice-vdagent) will be installed on first boot."
+echo "VM $VMID created and started. Cloud-init will create range42-operator, install packages, and reboot after first boot."
