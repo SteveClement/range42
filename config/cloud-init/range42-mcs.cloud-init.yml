@@ -6,8 +6,8 @@ users:
   - name: range42-operator
     sudo: ALL=(ALL) NOPASSWD:ALL
     shell: /bin/bash
+    # Keys injected by provision script when available
     ssh_authorized_keys:
-      - ssh-rsa AAAAB3NzaC... your-key-here
     lock_passwd: false
 
 chpasswd:

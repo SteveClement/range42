@@ -7,11 +7,35 @@ IMAGE="/var/lib/vz/template/iso/ubuntu-24.04-server-cloudimg-amd64.img"
 
 # TODO: Think how to get cloud init to that location.
 # TODO: Adapt script to consider the variable.
-CLINIT="snippets/range42-mcs.cloud-init.yml"
+CLINIT_PATH="/var/lib/vz/snippets/range42-mcs.cloud-init.yml"
+CLINIT_SNIPPET="snippets/$(basename "${CLINIT_PATH}")"
 
 # Fetch the cloud-init image if missing
 if [ ! -f "${IMAGE}" ]; then
   wget https://cloud-images.ubuntu.com/releases/24.04/release/ubuntu-24.04-server-cloudimg-amd64.img -O "${IMAGE}"
+fi
+
+# Inject SSH keys into cloud-init if there are multiple keys available
+if [ -f /root/.ssh/authorized_keys ]; then
+  key_count=$(wc -l < /root/.ssh/authorized_keys | tr -d ' ')
+  if [ "${key_count}" -gt 1 ] && [ -f "${CLINIT_PATH}" ]; then
+    awk '
+      BEGIN { in_keys = 0 }
+      /^    ssh_authorized_keys:/ {
+        print
+        while ((getline key < "/root/.ssh/authorized_keys") > 0) {
+          if (key ~ /./) {
+            print "      - " key
+          }
+        }
+        close("/root/.ssh/authorized_keys")
+        in_keys = 1
+        next
+      }
+      in_keys && /^      - / { next }
+      { in_keys = 0; print }
+    ' "${CLINIT_PATH}" > "${CLINIT_PATH}.tmp" && mv "${CLINIT_PATH}.tmp" "${CLINIT_PATH}"
+  fi
 fi
 
 
@@ -39,7 +63,7 @@ qm set $VMID --ipconfig0 ip=dhcp
 qm set $VMID --nameserver 8.8.8.8
 
 # Add custom cloud-init with packages
-qm set $VMID --cicustom "user=local:${CLINIT}"
+qm set $VMID --cicustom "user=local:${CLINIT_SNIPPET}"
 
 # Start VM
 qm start $VMID
