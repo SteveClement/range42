@@ -9,11 +9,16 @@ IMAGE="/var/lib/vz/template/iso/ubuntu-24.04-server-cloudimg-amd64.img"
 # TODO: Adapt script to consider the variable.
 CLINIT_PATH="/var/lib/vz/snippets/range42-mcs.cloud-init.yml"
 CLINIT_SNIPPET="snippets/$(basename "${CLINIT_PATH}")"
+ENV_FILE="./.env"
 
 # Fetch the cloud-init image if missing
 if [ ! -f "${IMAGE}" ]; then
   wget https://cloud-images.ubuntu.com/releases/24.04/release/ubuntu-24.04-server-cloudimg-amd64.img -O "${IMAGE}"
 fi
+
+# Create API token and update token secret in the existing env file on the PVE node.
+# token_secret=$(pveum user token add root@pam range42_api_main --privsep 0 | awk -F': ' '/token secret/ {print $2}')
+# sed -i.bak "s|^PROXMOX_API_TOKEN_SECRET=.*|PROXMOX_API_TOKEN_SECRET=\"${token_secret}\"|" "${ENV_FILE}"
 
 # Inject SSH keys into cloud-init if there are multiple keys available
 if [ -f /root/.ssh/authorized_keys ]; then
